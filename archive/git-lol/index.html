@@ -1,0 +1,88 @@
+<!doctype html><html>
+<head>
+<meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<meta name=date content="December-15-2021">
+<link rel=stylesheet href=/style.c0137455c95229bce3c902b60e56fd4abab8e35358e5eb2ab4cc1b7d4a508d8a.css>
+<title>git@github.com:git/git.git</title>
+</head>
+<body>
+<header>
+<h1><a href=/archive>git@github.com:git/git.git</a></h1>
+<p class=doc-subtitle>How I Became One Of Git's Most Prolific Contributors</p>
+</header>
+<main>
+<div id=content><p>I&rsquo;m generally a big fan of Git&rsquo;s &ldquo;similar command&rdquo; tip, but the other
+day after <del>forgetting that git isn&rsquo;t as smart as hg</del> hitting Enter too early, I
+noticed something odd:</p>
+<div class=highlight><pre tabindex=0 style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-console data-lang=console>$ git st
+git: &#39;st&#39; is not a git command. See &#39;git --help&#39;.
+<span>
+</span><span></span>The most similar commands are
+   status
+   reset
+   stage
+   stash
+$ git st 2&gt;&amp;1 | sort
+<span>
+</span><span></span>   reset
+   stage
+   stash
+   status
+The most similar commands are
+git: &#39;st&#39; is not a git command. See &#39;git --help&#39;.
+</code></pre></div><p>The out-of-order list is coming from <a href=https://github.com/git/git/blob/69a9c10c9/help.c#L546-L675><code>help_unknown_cmd</code></a>.</p>
+<p>At a high level, it&rsquo;s calculating <a href=https://github.com/git/git/blob/69a9c10c9/levenshtein.c>edit distance</a> between &ldquo;st&rdquo;
+and the other Git commands, and then listing the closest matches<sup id=fnref:1><a href=#fn:1 class=footnote-ref role=doc-noteref>1</a></sup>.</p>
+<p>It prioritizes common commands (aka the commands that show up when you run
+<code>git help</code>), which is why <code>status</code> is first in the list above<sup id=fnref:2><a href=#fn:2 class=footnote-ref role=doc-noteref>2</a></sup>.</p>
+<details>
+<summary>At a slightly lower level...</summary>
+<ol>
+<li>It collects all git builtins, gitconfig aliases, and &ldquo;git-&rdquo; $PATH
+executables into a single sorted list.</li>
+<li>Then collects the common commands into a similar list. These are the commands
+from <a href=https://github.com/git/git/blob/69a9c10c9/command-list.txt>command-list.txt</a> that are categorized as <em>init</em>,
+<em>worktree</em>, <em>info</em>, <em>history</em>, or <em>remote</em>.</li>
+<li>For each command from the list from Step 1, it calculates the
+<a href=https://github.com/git/git/blob/69a9c10c9/levenshtein.c>edit distance</a> against the input. If the command is a common one
+and is prefixed by the input, it gets a score of 0.</li>
+<li>Finally it sorts the list by score and prints the closest matches. It won&rsquo;t
+print anything if the lowest score is larger than 7. Now go read that email from
+Johannes.</li>
+</ol>
+</details>
+<h4 id=autocorrection>Autocorrection</h4>
+<p>I also found <a href=https://github.com/git/git/blob/69a9c10c9/help.c#L630-L660>some code</a> that deals with
+autocorrecting invalid commands. Git can either prompt you or just
+<a href=https://git-scm.com/book/en/v2/Customizing-Git-Git-Configuration#_help_autocorrect title="thanks, Git!">do the right thing</a> on its own. The former is new in Git
+2.34. I noticed a pretty terrible bug when I tried it though:</p>
+<div class=highlight><pre tabindex=0 style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-console data-lang=console>$ ./git config --global help.autocorrect prompt
+$ ./git lol
+WARNING: You called a Git command named &#39;lol&#39;, which does not exist.
+Run &#39;log&#39; instead? (y/N)^
+                        ^ text cursor
+</code></pre></div><p>There&rsquo;s no space after the prompt! So I added a space and now I&rsquo;m a contributor
+to the Git programming language. BYE</p>
+<section class=footnotes role=doc-endnotes>
+<hr>
+<ol>
+<li id=fn:1 role=doc-endnote>
+<p>It lists the commands with the lowest score. But only as long as that
+score is <a href=https://github.com/git/git/blob/69a9c10c95e28df457e33b3c7400b16caf2e2962/help.c#L538-L539>below 7</a>. You should read Johannes' totally scientific method
+of discovering that threshold: <a href="https://marc.info/?l=git&m=126082583920712">https://marc.info/?l=git&m=126082583920712</a>.&#160;<a href=#fnref:1 class=footnote-backref role=doc-backlink>&#8617;&#xfe0e;</a></p>
+</li>
+<li id=fn:2 role=doc-endnote>
+<p>Specifically, <code>status</code> is both a common command <em>and</em> prefixed by &ldquo;st&rdquo;,
+so it gets a very good score of <a href=https://github.com/git/git/blob/69a9c10c95e28df457e33b3c7400b16caf2e2962/help.c#L595-L603>zero</a>, while <code>reset</code>, <code>stage</code>, and
+<code>stash</code> get not very good scores of <a href=https://github.com/git/git/blob/69a9c10c95e28df457e33b3c7400b16caf2e2962/help.c#L605-L606>four</a>.&#160;<a href=#fnref:2 class=footnote-backref role=doc-backlink>&#8617;&#xfe0e;</a></p>
+</li>
+</ol>
+</section>
+</div>
+</main>
+<footer>
+<p class=doc-date>December 15, 2021</p>
+</footer>
+</body>
+</html>

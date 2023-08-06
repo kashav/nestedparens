@@ -1,0 +1,45 @@
+<!doctype html><html>
+<head>
+<meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<meta name=date content="January-12-2022">
+<link rel=stylesheet href=/style.c0137455c95229bce3c902b60e56fd4abab8e35358e5eb2ab4cc1b7d4a508d8a.css>
+<title>What's Eating Port 5000</title>
+</head>
+<body>
+<header>
+<h1><a href=/archive>What's Eating Port 5000</a></h1>
+<p class=doc-subtitle>MMM.. FOOD</p>
+</header>
+<main>
+<div id=content><p>I&rsquo;ve been playing around with one of those new M1 Max Macbooks and it&rsquo;s been fun. My windows open really fast and my terminal emulator doesn&rsquo;t jank the whole OS anymore, so I&rsquo;ve been super productive.</p>
+<p>Anyway, I was trying to get some stuff setup locally, but I ran into a weird problem when running one of the commands:</p>
+<div class=highlight><pre tabindex=0 style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-console data-lang=console>$ make redacted-redacted-redacted-redacted-redacted
+...
+docker: Error response from daemon: Ports are not available: listen tcp 0.0.0.0:5000: bind: address already in use.
+make: *** [redacted-redacted-redacted-redacted-redacted] Error 125
+</code></pre></div><p>The computer was mostly a clean slate at this point and I wasn&rsquo;t running any servers of my own (especially not the soundless soundboard that&rsquo;s usually running on my other machines).</p>
+<p>I <code>Up</code>+<code>Enter</code>ed a few more times, just to be sure. The same thing happened each time.</p>
+<div class=highlight><pre tabindex=0 style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-console data-lang=console>$ make redacted-redacted-redacted-redacted-redacted
+docker: Error response from daemon: Ports are not available: listen tcp 0.0.0.0:5000: bind: address already in use.
+$ make redacted-redacted-redacted-redacted-redacted
+docker: Error response from daemon: Ports are not available: listen tcp 0.0.0.0:5000: bind: address already in use.
+$ make redacted-redacted-redacted-redacted-redacted
+docker: Error response from daemon: Ports are not available: listen tcp 0.0.0.0:5000: bind: address already in use.
+</code></pre></div><p><a href=https://en.wikipedia.org/wiki/Lsof><code>lsof</code></a>, my favourite Unix-like tool of all time, told me that the port is bound to a MacOS system command:</p>
+<div class=highlight><pre tabindex=0 style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-console data-lang=console>$ lsof -nP -i:5000
+COMMAND     PID   USER   FD   TYPE            DEVICE SIZE/OFF NODE NAME
+ControlCe 32275    foo   16u  IPv4 0x813fd83221ca671      0t0  TCP *:5000 (LISTEN)
+ControlCe 32275    foo   17u  IPv6 0x813fd830fa1da99      0t0  TCP *:5000 (LISTEN)
+$ ps 32275
+  PID   TT  STAT      TIME COMMAND
+32275   ??  S      0:14.36 /System/Library/CoreServices/ControlCenter.app/Contents/MacOS/ControlCenter
+</code></pre></div><p>bfad <a href=https://developer.apple.com/forums/thread/682332>figured out</a> that it&rsquo;s related to AirPlay Receiver, which listens for AirPlay requests or something. It&rsquo;s also listening on port 7000.</p>
+<p>If I stop that receiver service, start a server of my own on port 5000, and then restart the receiver, it listens on 56671 instead. I wonder how it&rsquo;s choosing that port.</p>
+</div>
+</main>
+<footer>
+<p class=doc-date>January 12, 2022</p>
+</footer>
+</body>
+</html>

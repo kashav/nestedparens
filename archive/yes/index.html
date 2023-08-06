@@ -1,0 +1,56 @@
+<!doctype html><html>
+<head>
+<meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<meta name=date content="April-15-2022">
+<link rel=stylesheet href=/style.c0137455c95229bce3c902b60e56fd4abab8e35358e5eb2ab4cc1b7d4a508d8a.css>
+<title>Keeping up appearances</title>
+</head>
+<body>
+<header>
+<h1><a href=/archive>Keeping up appearances</a></h1>
+</header>
+<main>
+<div id=content><p>I was brainstorming ideas for a post named &ldquo;keeping up appearances&rdquo; and found myself on statuspage.io. It&rsquo;s a status page service that tracks system status and uptime and other important metrics for startups and big companies. It&rsquo;s super popular.</p>
+<p>I noticed that all statuspage.io pages reload themselves after being open for a bit, like this dropbox one: <a href=https://status.dropbox.com/>https://status.dropbox.com/</a>.</p>
+<p>Here&rsquo;s the code that&rsquo;s doing that:</p>
+<div class=highlight><pre tabindex=0 style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-javascript data-lang=javascript>SP.pollForChanges = <span style=font-weight:700;font-style:italic;text-decoration:underline>function</span>(t) {
+    <span style=font-weight:700;font-style:italic;text-decoration:underline>var</span> e = <span style=font-weight:700;text-decoration:underline>this</span>.pollURL;
+    e(t).done(<span style=font-weight:700;font-style:italic;text-decoration:underline>function</span>() {
+        setInterval(<span style=font-weight:700;font-style:italic;text-decoration:underline>function</span>() {
+            e(t).done(<span style=font-weight:700;font-style:italic;text-decoration:underline>function</span>(t, e, i) {
+                304 !== i.status &amp;&amp; <span style=font-weight:700;font-style:italic>window</span>.location.reload(!0)
+            })
+        }, 6e4)
+    }).fail(<span style=font-weight:700;font-style:italic;text-decoration:underline>function</span>() {
+        setTimeout(<span style=font-weight:700;font-style:italic;text-decoration:underline>function</span>() {
+            SP.pollForChanges(t)
+        }, 6e4)
+    })
+}
+</code></pre></div><p>It&rsquo;s checking if it needs to reload the page every 60000 ms by making a request to some json endpoint and checking the response status. For some reason the status code is always 200 in Firefox, so that&rsquo;s probably a bug.</p>
+<p>What&rsquo;s more is that the location.reload() parameter doesn&rsquo;t actually exist. <a href=https://developer.mozilla.org/en-US/docs/Web/API/Location/reload#location.reload_has_no_parameter>It almost did</a>, but it doesn&rsquo;t. Firefox still supports it, obviously. It&rsquo;s used to control hard reload, so I imagine there&rsquo;s room for a perceived perf win there. Maybe one of you Mozilla engineers can <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=1037721#c6">take a look</a>.</p>
+<p>Anyway, while looking for that <code>pollForChanges</code> function I noticed a bunch of <code>'yes'</code>s and <code>'no'</code>s being logged to the console on dropbox&rsquo;s status page.</p>
+<p>Here&rsquo;s the code that&rsquo;s doing <em>that</em>:</p>
+<div class=highlight><pre tabindex=0 style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-javascript data-lang=javascript>$(<span style=font-weight:700;font-style:italic;text-decoration:underline>function</span>() {
+  $(<span style=font-weight:700;font-style:italic>window</span>).on(<span style=color:#666;font-style:italic>&#39;scroll&#39;</span>, <span style=font-weight:700;font-style:italic;text-decoration:underline>function</span>() {
+    <span style=font-weight:700;text-decoration:underline>if</span> ($(<span style=font-weight:700;font-style:italic>window</span>).scrollTop() &gt; 250) {
+      $(<span style=color:#666;font-style:italic>&#39;#logos-container&#39;</span>).addClass(<span style=color:#666;font-style:italic>&#39;scrolled&#39;</span>);
+      console.log(<span style=color:#666;font-style:italic>&#39;yes&#39;</span>);
+    }
+    <span style=font-weight:700;text-decoration:underline>else</span> {
+      $(<span style=color:#666;font-style:italic>&#39;#logos-container&#39;</span>).removeClass(<span style=color:#666;font-style:italic>&#39;scrolled&#39;</span>);
+      console.log(<span style=color:#666;font-style:italic>&#39;no&#39;</span>);
+    }
+  });
+});
+</code></pre></div><p>It&rsquo;s toggling a class on the logo when the window scrolls below 250px. To add an animation when the user scrolls below the fold. For aesthetics.</p>
+<p>But the developer forgot to remove their debug statements! I thought it was particularly wild that they used yes and no of all things.</p>
+<script>window.addEventListener("load",function(){const a=document.querySelector("title");window.addEventListener("scroll",function(){a.innerText=window.scrollY>85?"yes":"no"})})</script>
+</div>
+</main>
+<footer>
+<p class=doc-date>April 15, 2022</p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!doctype html><html>
+<head>
+<meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<meta name=date content="January-27-2022">
+<link rel=stylesheet href=/style.c0137455c95229bce3c902b60e56fd4abab8e35358e5eb2ab4cc1b7d4a508d8a.css>
+<title>The Truth Behind Trailing Slashes</title>
+</head>
+<body>
+<header>
+<h1><a href=/archive>The Truth Behind Trailing Slashes</a></h1>
+</header>
+<main>
+<div id=content><p>There&rsquo;s been a lot of talk about trailing slashes in URIs lately, and I thought
+the conversation could use some insight from a browser commercialization expert
+like myself.</p>
+<p>I don&rsquo;t actually have a strong opinion on the topic, and I don&rsquo;t think the
+<a href=https://datatracker.ietf.org/doc/html/rfc3986>URI spec</a> does either<sup id=fnref:1><a href=#fn:1 class=footnote-ref role=doc-noteref>1</a></sup>, so I thought I&rsquo;d tell you a story of one of
+my first Firefox projects instead. This took place around the end of 2019.</p>
+<h3 id=replacing-a-jet-engine-mid-flight>Replacing a Jet Engine Mid-flight</h3>
+<p>I was on <a href=https://hacks.mozilla.org/2021/05/introducing-firefox-new-site-isolation-security-architecture/>the Fission team</a> at Mozilla. Put simply, the goal of the
+project was to make every unique site in Firefox load in a separate OS process.
+The linked blog post has more details (and art).</p>
+<p>Before Fission, most Gecko/Firefox code was written assuming that a web document
+would only span a single process. But we were actively breaking that assumption:
+documents with cross-origin iframes would now need to cross OS-level process
+boundaries. The browser wasn&rsquo;t ready to deal with that.</p>
+<p>The project took about three years to complete, and was being shipped in a
+disabled state for most of that time. It was available to turn on, and mostly
+usable too, but that meant that we were supporting two very distinct
+configurations&mldr; while replacing the core of the browser.</p>
+<p>Anyway, a large part of modern browser development is tests. There are, quite
+literally, <a href="https://treeherder.mozilla.org/jobs?group_state=expanded&repo=mozilla-central">800 million of them</a>. And so, naturally, getting tests to work
+with Fission was a huge subproject of its own.</p>
+<h3 id=enter-browsertestutilsbrowserloadedhell>Enter <a href=https://searchfox.org/mozilla-central/rev/d5113f9c616b75b7919916f5fe4b4f8f78191ac9/testing/mochitest/BrowserTestUtils/BrowserTestUtils.jsm#395-423>BrowserTestUtils.browserLoaded()</a>.</h3>
+<p>This is a helper function used in browser tests to wait for an ongoing load to
+complete. ripgrep tells me that it&rsquo;s called <a href="https://searchfox.org/mozilla-central/search?q=BrowserTestUtils.browserLoaded%28">over 1300 times</a>, but that
+doesn&rsquo;t count functions that call it indirectly, so it&rsquo;s probably closer to
+double that.</p>
+<p>As soon as we started the &ldquo;fix all the tests&rdquo; phase of Fission, it became clear
+that this function would need to be rewritten. The previous implementation used
+something called a frame script, but those don&rsquo;t work in the new process-per-site
+model. Long story short, the function was rewritten to use
+<a href=https://firefox-source-docs.mozilla.org/dom/ipc/jsactors.html>JS Window Actors</a> instead.</p>
+<p>So I spent a few weeks working on that, and it was fun, but the more interesting
+learning, at least in my opinion, was in trailing slashes.</p>
+<h4 id=what>&mldr;what?</h4>
+<p>Stick with me.</p>
+<p>If you did your homework, then you&rsquo;d know that <code>browserLoaded()</code> takes an
+optional <code>wantLoad</code> parameter. It lets the caller wait for a specific load
+rather than just the first one. The parameter is compared to the URI of every
+page that loads until a match is found.</p>
+<p>Here&rsquo;s the problem: for any <a href=https://en.wikipedia.org/wiki/Web_server_directory_index>index page</a>, that URI <em>always</em> has a trailing slash<sup id=fnref:2><a href=#fn:2 class=footnote-ref role=doc-noteref>2</a></sup>.</p>
+<p>Consider the following index.html:</p>
+<div class=highlight><pre tabindex=0 style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-html data-lang=html><span style=color:#888;font-weight:700>&lt;!DOCTYPE html&gt;</span>    <span style=color:#888;font-style:italic>&lt;!-- accessed via http://a.com in the browser --&gt;</span>
+&lt;script&gt;
+<span style=font-weight:700;font-style:italic>window</span>.addEventListener(<span style=color:#666;font-style:italic>&#34;load&#34;</span>, event =&gt; {
+  console.log(event.target.documentURI); <span style=color:#888;font-style:italic>//=&gt; http://a.com/ &lt;- a slash!
+</span><span style=color:#888;font-style:italic></span>});
+&lt;/script&gt;
+</code></pre></div><p>Okay&mldr; so why&rsquo;s that a problem?</p>
+<p>I&rsquo;m getting there. Now consider this browser test:</p>
+<div class=highlight><pre tabindex=0 style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-javascript data-lang=javascript><span style=font-weight:700;text-decoration:underline>const</span> URI = <span style=color:#666;font-style:italic>&#34;http://b.com&#34;</span>;
+
+<span style=font-weight:700;text-decoration:underline>async</span> <span style=font-weight:700;font-style:italic;text-decoration:underline>function</span> test() {
+  <span style=font-weight:700;text-decoration:underline>const</span> browser = BrowserTestUtils.openNewBrowserWindow();
+  BrowserTestUtils.loadURI(browser, URI);
+  <span style=font-weight:700;text-decoration:underline>await</span> BrowserTestUtils.browserLoaded(browser, <span style=font-weight:700;text-decoration:underline>false</span>, URI);
+  ...
+}
+</code></pre></div><p>When you run the test, you&rsquo;ll see a browser window open, and you&rsquo;ll see it load
+b.com, but then&mldr; it&mldr; just&mldr; <strong><em>hangs</em></strong>&mldr;</p>
+<p>I&rsquo;ll let you figure out why. And make sure you&rsquo;re subscribed. Next week I&rsquo;ll
+be talking about all the fun I had with Punycode.</p>
+<section class=footnotes role=doc-endnotes>
+<hr>
+<ol>
+<li id=fn:1 role=doc-endnote>
+<p>I&rsquo;m not actually sure about this. A search for &ldquo;trailing&rdquo; in the linked spec and <a href=https://url.spec.whatwg.org/#concept-url>several</a> <a href=https://dom.spec.whatwg.org/#concept-document-url>other</a> <a href=https://html.spec.whatwg.org/multipage/history.html#concept-location-url>specs</a> didn&rsquo;t turn up much, so this was my conclusion. Please correct me if I&rsquo;m wrong.&#160;<a href=#fnref:1 class=footnote-backref role=doc-backlink>&#8617;&#xfe0e;</a></p>
+</li>
+<li id=fn:2 role=doc-endnote>
+<p>I eventually learnt why and how this happens too, but that&rsquo;s a story for another time.&#160;<a href=#fnref:2 class=footnote-backref role=doc-backlink>&#8617;&#xfe0e;</a></p>
+</li>
+</ol>
+</section>
+</div>
+</main>
+<footer>
+<p class=doc-date>January 27, 2022</p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,27 @@
+<!doctype html><html>
+<head>
+<meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<meta name=date content="March-25-2022">
+<link rel=stylesheet href=/style.c0137455c95229bce3c902b60e56fd4abab8e35358e5eb2ab4cc1b7d4a508d8a.css>
+<title>The Big Nothing</title>
+</head>
+<body>
+<header>
+<h1><a href=/archive>The Big Nothing</a></h1>
+<p class=doc-subtitle>Reverse-engineering GitHub's identicon algorithm</p>
+</header>
+<main>
+<div id=content><p>I made a thing, I think it&rsquo;s pretty cool: <a href=https://kashav.github.io/identicon>kashav.github.io/identicon</a>.</p>
+<p>It let&rsquo;s you play around with pixels to choose a Github avatar pattern and then finds all user ids that hash to that pattern.</p>
+<p>It started with <a href=https://github.blog/2013-08-14-identicons/>this</a> blog post, but the author couldn&rsquo;t recall much, so it was mostly built on the backs of <a href=https://github.com/stewartlord/identicon.js>stewartlord/identicon.js</a> and <a href=https://github.com/dgraham/identicon>dgraham/identicon</a>. They&rsquo;re ports of the algorithm by former(?) Github employees. Only the second one gets the colours correct, so I only followed that one.</p>
+<p>There&rsquo;s a detailed breakdown of the algorithm and how the reversal works (with examples and everything) in the readme. It also talks about bits and <a href=https://en.wikipedia.org/wiki/Bit_nibbler>nibbles</a> and md5 and some other really cool things.</p>
+<p>My favourite avatar, as you may have guessed, is the empty avatar: <a href=https://github.com/catsbyfella>github.com/catsbyfella</a>. I call it <a href="https://www.youtube.com/watch?v=sPkBgHk94mw">The Big Nothing</a>.</p>
+<p>Anyways, the <a href=https://github.com/kashav/identicon>code is on GitHub</a>, feel free to star it or leave a comment or do whatever it is you normally do with other open source projects.</p>
+</div>
+</main>
+<footer>
+<p class=doc-date>March 25, 2022</p>
+</footer>
+</body>
+</html>

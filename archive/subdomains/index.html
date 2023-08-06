@@ -1,0 +1,47 @@
+<!doctype html><html>
+<head>
+<meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<meta name=date content="December-25-2021">
+<link rel=stylesheet href=/style.c0137455c95229bce3c902b60e56fd4abab8e35358e5eb2ab4cc1b7d4a508d8a.css>
+<title>How Do You Version Control Your Subdomains?</title>
+</head>
+<body>
+<header>
+<h1><a href=/archive>How Do You Version Control Your Subdomains?</a></h1>
+</header>
+<main>
+<div id=content><p>With branches! Specifically, <a href=https://git-scm.com/docs/git-switch/2.23.0#Documentation/git-switch.txt---orphanltnew-branchgt>orphan branches</a><sup id=fnref:1><a href=#fn:1 class=footnote-ref role=doc-noteref>1</a></sup>:</p>
+<div class=highlight><pre tabindex=0 style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-console data-lang=console>$ git init foo.ca &amp;&amp; <span style=font-weight:700;font-style:italic>cd</span> foo.ca
+$ git commit --message <span style=color:#666;font-style:italic>&#34;Initial commit&#34;</span> --allow-empty
+$ git switch --orphan=api
+$ git log
+fatal: your current branch &#39;api&#39; does not have any commits yet
+</code></pre></div><p>This is useful, for example, if you have a private repository on Github.com with
+many members and don&rsquo;t want to invite them to (or manage) (or pay for) 8
+individual subdomain repositories as well.</p>
+<p>I prefer to use the form <code>main-&lt;orphan></code> for branch names. It keeps important
+branches grouped together in lists and makes it easy to reference parents in
+working branch names:</p>
+<div class=highlight><pre tabindex=0 style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-console data-lang=console>$ git switch --orphan=main-blog
+$ git commit --message=<span style=color:#666;font-style:italic>&#34;Initial commit for blog.foo.ca&#34;</span> --allow-empty
+$ git switch --create=blog/feature/comments
+$ git branch --verbose
+* blog/feature/comments 5093124 Initial commit for blog.foo.ca
+  main                  6c6c484 Initial commit
+  main-blog             5093124 Initial commit for blog.foo.ca
+</code></pre></div><section class=footnotes role=doc-endnotes>
+<hr>
+<ol>
+<li id=fn:1 role=doc-endnote>
+<p><code>git switch</code> is relatively new, you can also use <a href=https://git-scm.com/docs/git-checkout#Documentation/git-checkout.txt---orphanltnewbranchgt><code>git checkout --orphan</code></a>.&#160;<a href=#fnref:1 class=footnote-backref role=doc-backlink>&#8617;&#xfe0e;</a></p>
+</li>
+</ol>
+</section>
+</div>
+</main>
+<footer>
+<p class=doc-date>December 25, 2021</p>
+</footer>
+</body>
+</html>

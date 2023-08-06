@@ -1,0 +1,93 @@
+<!doctype html><html>
+<head>
+<meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<meta name=date content="March-13-2022">
+<link rel=stylesheet href=/style.c0137455c95229bce3c902b60e56fd4abab8e35358e5eb2ab4cc1b7d4a508d8a.css>
+<title>100 % 5</title>
+</head>
+<body>
+<header>
+<h1><a href=/archive>100 % 5</a></h1>
+</header>
+<main>
+<div id=content><p>I saw this <a href="https://www.youtube.com/watch?v=Ox95VqtRC28">video</a> about <code>split</code> earlier today and thought I noticed
+something odd.</p>
+<p>Very succinctly, here&rsquo;s what the video shows:</p>
+<div class=highlight><pre tabindex=0 style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-console data-lang=console>$ seq 1 100 &gt; f
+$ split -n l/5 f
+$ ls
+f  xaa  xab  xac  xad  xae
+</code></pre></div><p>The command splits <code>f</code>, a file with 100 lines, into 5 &ldquo;equally-sized&rdquo; parts,
+each prefixed by an <code>x</code>.</p>
+<p>But&mldr; they&rsquo;re not actually the same size:</p>
+<div class=highlight><pre tabindex=0 style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-console data-lang=console>$ wc *
+     100     100     292 f
+      23      23      60 xaa
+      19      19      57 xab
+      19      19      57 xac
+      20      20      60 xad
+      19      19      58 xae
+     200     200     584 total
+</code></pre></div><p>Now if I was paying attention to the video I would&rsquo;ve understood that it&rsquo;s
+splitting the file by byte count (instead of line count). But I wasn&rsquo;t. It also
+doesn&rsquo;t actually mention that the chunks are supposed to be the same size. Oops.</p>
+<p>Anyway, I went down a bit of a rabbit hole. I thought I&rsquo;d share my intuition for
+understanding what&rsquo;s going on.</p>
+<ol>
+<li>
+<p><code>f</code> is 292 bytes. It&rsquo;s made up of 9 single-digit numbers (1 to 9), 90
+double-digit numbers (10 to 99) and 1 triple-digit number (100). Each line
+also has a newline character. That&rsquo;s (9 × 1) + (90 × 2) + (1 × 3) + 100 = 292
+bytes.</p>
+</li>
+<li>
+<p>We asked to split <code>f</code> into 5 files, without breaking lines. That&rsquo;s 292 bytes
+÷ 5 chunks = 58.4 bytes per chunk.</p>
+</li>
+<li>
+<p>So <code>split</code> is probably continually copying some amount of <code>f</code> into a new
+file, until that file is 58.4 bytes. It needs to keeps going until the next
+newline character, since we told it to not break in-between lines. It then
+repeats the process with more new files, until reaching the end of <code>f</code>.</p>
+<p>Here&rsquo;s a visualization of the first two chunks. The line with &ldquo;23&rdquo; doesn&rsquo;t
+fit into the initial 58.4 bytes, which is why the <code>xaa</code> file above is 60
+bytes.</p>
+<div class=highlight><pre tabindex=0 style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-console data-lang=console>$ hexdump -C -s 0 -n 58.4 f
+00000000  31 0a 32 0a 33 0a 34 0a  35 0a 36 0a 37 0a 38 0a  |1.2.3.4.5.6.7.8.|
+00000010  39 0a 31 30 0a 31 31 0a  31 32 0a 31 33 0a 31 34  |9.10.11.12.13.14|
+00000020  0a 31 35 0a 31 36 0a 31  37 0a 31 38 0a 31 39 0a  |.15.16.17.18.19.|
+00000030  32 30 0a 32 31 0a 32 32  0a 32                    |20.21.22.2|
+0000003a
+$ hexdump -C -s 58.4 -n 58.4 f
+0000003a  33 0a 32 34 0a 32 35 0a  32 36 0a 32 37 0a 32 38  |3.24.25.26.27.28|
+0000004a  0a 32 39 0a 33 30 0a 33  31 0a 33 32 0a 33 33 0a  |.29.30.31.32.33.|
+0000005a  33 34 0a 33 35 0a 33 36  0a 33 37 0a 33 38 0a 33  |34.35.36.37.38.3|
+0000006a  39 0a 34 30 0a 34 31 0a  34 32                    |9.40.41.42|
+00000074
+</code></pre></div></li>
+</ol>
+<p>For a file with 100 double-digit numbers, the output chunks are indeed the same
+size:</p>
+<div class=highlight><pre tabindex=0 style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-console data-lang=console>$ seq -w 0 99 &gt; f2 <span style=color:#888;font-style:italic># -w pads all numbers to be the same length, like left-pad</span>
+$ split -n l/5 f2
+$ wc *
+     100     100     300 f2
+      20      20      60 xaa
+      20      20      60 xab
+      20      20      60 xac
+      20      20      60 xad
+      20      20      60 xae
+     200     200     600 total
+</code></pre></div><p>Perfect and round, just like the <a href="https://www.youtube.com/watch?v=UhPvpEXFDJ0">sun</a>.</p>
+<hr>
+<p>Note that this is about GNU split and not BSD split (which is the
+default on MacOS), because the two are very different, probably for a really
+good reason.</p>
+</div>
+</main>
+<footer>
+<p class=doc-date>March 13, 2022</p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,68 @@
+html {
+  margin: 0;
+  padding: 0;
+  font-family: monospace; }
+
+body {
+  margin: 2em 0;
+  padding: 0 1.5em;
+  font-size: 1.8em;
+  max-width: 20cm; }
+
+h1, h2, h3 h4, h5, h6 {
+  margin: 0;
+  padding: 0; }
+
+a {
+  text-decoration-color: #073642;
+  color: inherit; }
+
+ol,
+ul {
+  padding-left: 60px; }
+
+pre {
+  overflow-y: auto;
+  border: 1pt solid #93a1a1;
+  padding: 10px; }
+
+p > code,
+li > code,
+a > code,
+summary > code {
+  background-color: #f5f5f5; }
+
+details {
+  margin-bottom: 20px; }
+
+blockquote {
+  margin: 10px;
+  border-left: 3px solid #eee;
+  padding-left: 15px; }
+
+#posts {
+  list-style-type: none;
+  padding: 0; }
+  #posts li {
+    margin: 4pt 0; }
+    #posts li a {
+      text-decoration: none; }
+
+header .doc-subtitle {
+  margin: 0;
+  padding: 0;
+  font-weight: bold;
+  font-size: 1.1em;
+  color: gray; }
+
+header a {
+  text-decoration: none; }
+  header a:hover {
+    background-color: inherit; }
+
+#content ul {
+  list-style-type: square; }
+
+footer {
+  font-style: italic;
+  font-weight: lighter; }

@@ -1,0 +1,138 @@
+<!doctype html><html>
+<head>
+<meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<meta name=date content="December-31-2021">
+<link rel=stylesheet href=/style.c0137455c95229bce3c902b60e56fd4abab8e35358e5eb2ab4cc1b7d4a508d8a.css>
+<title>On Ephemerality</title>
+</head>
+<body>
+<header>
+<h1><a href=/archive>On Ephemerality</a></h1>
+<p class=doc-subtitle>Short-lived Adventures in the Linux Kernel</p>
+</header>
+<main>
+<div id=content><p>The other day I was playing around with the Node.js net module, as one does,
+when I noticed that calls to <code>server.listen()</code>
+<a href=https://nodejs.org/api/net.html#serverlistenport-host-backlog-callback>don&rsquo;t actually require a port number</a>:</p>
+<blockquote>
+<p>If port is omitted or is 0, the operating system will assign an arbitrary unused port, which can be retrieved by using server.address().port after the &lsquo;listening&rsquo; event has been emitted.</p>
+</blockquote>
+<div class=highlight><pre tabindex=0 style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-javascript data-lang=javascript><span style=font-weight:700;text-decoration:underline>const</span> net = require(<span style=color:#666;font-style:italic>&#34;net&#34;</span>);
+<span style=font-weight:700;text-decoration:underline>const</span> server = net.createServer();
+server.on(<span style=color:#666;font-style:italic>&#34;listening&#34;</span>, () =&gt; {
+  console.log(server.address().port); <span style=color:#888;font-style:italic>// not 0!
+</span><span style=color:#888;font-style:italic></span>});
+server.listen(0);
+</code></pre></div><p>The OS is choosing the ports here. <a href=https://stackoverflow.com/a/54229665>Trott wrote a script</a> to
+demonstrate that they&rsquo;re chosen sequentially, which appeared to be the case on
+macOS:</p>
+<div class=highlight><pre tabindex=0 style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-console data-lang=console>$ uname
+Darwin
+$ node trott.js
+create server with port 0
+server was assigned port 52111
+create server with port 52112
+server was assigned port 52112
+create server with port 0
+server was assigned port 52113
+</code></pre></div><p>But not on Linux:</p>
+<div class=highlight><pre tabindex=0 style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-console data-lang=console>$ uname
+Linux
+$ node trott.js
+create server with port 0
+server was assigned port 34229
+create server with port 34230
+server was assigned port 34230
+create server with port 0
+server was assigned port 34479
+</code></pre></div><h4 id=so-whats-going-on-with-linux>So what&rsquo;s going on with Linux?</h4>
+<p>Some Yahoo! searches revealed that it&rsquo;s choosing a port from what is known as
+the &ldquo;ephemeral port range&rdquo;:</p>
+<div class=highlight><pre tabindex=0 style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-console data-lang=console>$ sysctl net.ipv4.ip_local_port_range
+net.ipv4.ip_local_port_range = 32768  60999
+</code></pre></div><p>Sure enough, messing with that range causes things to blow up:</p>
+<div class=highlight><pre tabindex=0 style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-console data-lang=console>$ cat two-servers.js
+const net = require(&#34;net&#34;);
+<span>
+</span><span></span>function createServer(id) {
+  const server = net.createServer();
+  server.on(&#34;error&#34;, err =&gt; console.error(id, err));
+  server.on(&#34;listening&#34;, () =&gt; console.log(id, server.address().port));
+  server.listen(0);
+}
+<span>
+</span><span></span>createServer(1);
+createServer(2);
+$ node two-servers.js
+1 37049
+2 35057
+^C
+$ node two-servers.js
+1 35553
+2 39803
+^C
+$ sudo sysctl --write net.ipv4.ip_local_port_range=<span style=color:#666;font-style:italic>&#34;32768 32768&#34;</span>
+net.ipv4.ip_local_port_range = 32768 32768
+$ node two-servers.js
+1 32768
+2 Error: listen EADDRINUSE: address already in use ::
+  code: &#39;EADDRINUSE&#39;,
+  errno: -98,
+  syscall: &#39;listen&#39;,
+  address: &#39;::&#39;
+}
+</code></pre></div><h4 id=but-where-are-those-port-numbers-coming-from>But WHERE are those port numbers coming from?</h4>
+<p>Node is calling into bind(3) from <a href=https://github.com/nodejs/node/blob/db02f6f13220636051fb4021443d903c22270785/deps/uv/src/unix/tcp.c#L148><code>uv__tcp__bind</code></a>.
+The interesting work is happening in
+<a href=https://github.com/torvalds/linux/blob/4f3d93c6eaff6b84e43b63e0d7a119c5920e1020/net/ipv4/inet_connection_sock.c#L190><code>inet_csk_find_open_port</code></a>.</p>
+<details>
+<summary>
+Here's the call stack from the <code>server.listen()</code> call down to that function.
+</summary>
+<ol reversed>
+<li><a href=https://github.com/torvalds/linux/blob/4f3d93c6eaff6b84e43b63e0d7a119c5920e1020/net/ipv4/inet_connection_sock.c#L190>inet_csk_find_open_port</a></li>
+<li><a href=https://github.com/torvalds/linux/blob/4f3d93c6eaff6b84e43b63e0d7a119c5920e1020/net/ipv4/inet_connection_sock.c#L362>inet_csk_get_port</a> (via <a href=https://github.com/torvalds/linux/blob/4f3d93c6eaff6b84e43b63e0d7a119c5920e1020/net/ipv6/tcp_ipv6.c#L2183>tcpv6_prot</a>)</li>
+<li><a href=https://github.com/torvalds/linux/blob/4f3d93c6eaff6b84e43b63e0d7a119c5920e1020/net/ipv6/af_inet6.c#L278>__inet6__bind</a></li>
+<li><a href=https://github.com/torvalds/linux/blob/4f3d93c6eaff6b84e43b63e0d7a119c5920e1020/net/socket.c#L1679>__sys_bind</a></li>
+<li><a href=https://github.com/nodejs/node/blob/db02f6f13220636051fb4021443d903c22270785/deps/uv/src/unix/tcp.c#L148>uv__tcp_bind</a> (calls into the kernel)</li>
+<li><a href=https://github.com/nodejs/node/blob/db02f6f13220636051fb4021443d903c22270785/deps/uv/src/uv-common.c#L277>uv_tcp_bind</a></li>
+<li><a href=https://github.com/nodejs/node/blob/db02f6f13220636051fb4021443d903c22270785/src/tcp_wrap.cc#L233>TCPWrap::Bind</a></li>
+<li><a href=https://github.com/nodejs/node/blob/db02f6f13220636051fb4021443d903c22270785/lib/net.js#L1225>createServerHandle</a> (calls into native Node.js C++)</li>
+<li><a href=https://github.com/nodejs/node/blob/db02f6f13220636051fb4021443d903c22270785/lib/net.js#L1283>setupListenHandle</a></li>
+<li><a href=https://github.com/nodejs/node/blob/db02f6f13220636051fb4021443d903c22270785/lib/net.js#L1368>listenInCluster</a></li>
+<li><a href=https://github.com/nodejs/node/blob/db02f6f13220636051fb4021443d903c22270785/lib/net.js#L1509>lookupAndListen</a></li>
+<li><a href=https://github.com/nodejs/node/blob/db02f6f13220636051fb4021443d903c22270785/lib/net.js#L1410>Server.listen</a></li>
+</ol>
+<p>(I used <a href=https://code.woboq.org>https://code.woboq.org</a> and
+<a href=https://aleccolocco.blogspot.com/2008/11/ephemeral-ports-problem-and-solution.html>this blog post</a>
+to trace through most of the kernel code here. Thank you both for your help.)</p>
+</details>
+<p>It does randomized binary search on the range and returns the first port that
+isn&rsquo;t already bound to a socket.</p>
+<p>It starts by only trying odd numbers, so as not to conflict with a similar
+search that happens in connect(3) (which instead starts with even numbers). It
+also starts with only the lower half of the range, although I couldn&rsquo;t figure
+out why. But that explains why all of the ports returned above are odd and below
+40000!</p>
+<h4 id=and-then-it-happened>And then it happened</h4>
+<p>A <a href=https://github.com/torvalds/linux/blob/4f3d93c6eaff6b84e43b63e0d7a119c5920e1020/net/ipv4/inet_connection_sock.c#L205-L207>typo</a>!</p>
+<div class=highlight><pre tabindex=0 style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-C data-lang=C>other_half_scan:
+  inet_get_local_port_range(net, &amp;low, &amp;high);
+  high++; <span style=color:#888;font-style:italic>/* [32768, 60999] -&gt; [32768, 61000[ */</span>
+                                            ^ bad
+</code></pre></div><p>Before I knew it I had 8 &ldquo;how to send patches to Linus&rdquo; tabs open. Apparently
+this is considered a trivial bug, so I just needed to cc <a href=mailto:trivial@kernel.org>trivial@kernel.org</a> for
+review.</p>
+<p>But then I looked a little closer&mldr;</p>
+<p>The <code>61000[</code> just means that 61000 is excluded from the range. No typo
+after all. Not sure why they didn&rsquo;t just use regular
+interval notation like the rest of us Mathematicians. At least I didn&rsquo;t have to
+setup Mutt.</p>
+</div>
+</main>
+<footer>
+<p class=doc-date>December 31, 2021</p>
+</footer>
+</body>
+</html>

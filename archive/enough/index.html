@@ -1,0 +1,83 @@
+<!doctype html><html>
+<head>
+<meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<meta name=date content="March-12-2022">
+<link rel=stylesheet href=/style.c0137455c95229bce3c902b60e56fd4abab8e35358e5eb2ab4cc1b7d4a508d8a.css>
+<title>What are you doing, Kendrick?</title>
+</head>
+<body>
+<header>
+<h1><a href=/archive>What are you doing, Kendrick?</a></h1>
+</header>
+<main>
+<div id=content><p>The other day, for no reason in particular, I found myself on Kendrick Lamar&rsquo;s
+site: <a href=https://oklama.com/nuthoughts>https://oklama.com/nuthoughts</a>.</p>
+<p>I had the inspector open, because why wouldn&rsquo;t I have the inspector open, and I
+noticed something odd in the markup:</p>
+<div class=highlight><pre tabindex=0 style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-html data-lang=html>&lt;div&gt;
+  &lt;p&gt;V fcraq zbfg bs zl qnlf jvgu syrrgvat gubhtugf. Jevgvat. Yvfgravat. Naq pbyyrpgvat byq Ornpu pehvfref.
+     Gur zbeavat evqrf xrrc zr ba n uvyy bs&amp;nbsp;fvyrapr.&lt;/p&gt;
+  &lt;p&gt;V tb zbaguf jvgubhg n cubar.&lt;/p&gt;
+  &lt;p&gt;Ybir, ybff, naq tevrs unir qvfgheorq zl pbzsbeg mbar, ohg gur tyvzzref bs Tbq fcrnx guebhtu zl zhfvp naq&amp;nbsp;snzvyl.&lt;/p&gt;
+  &lt;p&gt;Juvyr gur jbeyq nebhaq zr ribyirf, V ersyrpg ba jung znggref gur zbfg. Gur yvsr va juvpu zl jbeqf jvyy ynaq&amp;nbsp;arkg.&lt;/p&gt;
+  &lt;p&gt;Nf V cebqhpr zl svany GQR nyohz, V srry wbl gb unir orra n cneg bs fhpu n phygheny vzcevag nsgre 17 lrnef.
+     Gur Fgehttyrf. Gur Fhpprff. Naq zbfg vzcbegnagyl, gur Oebgureubbq.
+     Znl gur Zbfg Uvtu pbagvahr gb hfr Gbc Qnjt nf n irffry sbe pnaqvq perngbef.
+     Nf V pbagvahr gb chefhr zl yvsr’f&amp;nbsp;pnyyvat.&lt;/p&gt;
+  &lt;p&gt;Gurer’f ornhgl va pbzcyrgvba. Naq nyjnlf snvgu va gur&amp;nbsp;haxabja.&lt;/p&gt;
+  &lt;p&gt;Gunax lbh sbe xrrcvat zr va lbhe gubhtugf. V’ir cenlrq sbe lbh&amp;nbsp;nyy.&lt;/p&gt;
+  &lt;p&gt;Frr lbh fbba rabhtu.&lt;/p&gt;
+  &lt;p&gt;-bxynzn&lt;/p&gt;
+&lt;/div&gt;
+</code></pre></div><p>(I didn&rsquo;t want to get sued by TDE, so I REDACTED the original text here. You
+should go read the post on his website.)</p>
+<p>The <a href=https://en.wikipedia.org/wiki/Non-breaking_space><code>&amp;nbsp;</code></a>s! They only
+show up in the Chrome inspector. We&rsquo;ll get back to these in a second.</p>
+<p>The site is built with Next.js. It&rsquo;s a framework that adds some tooling around
+the React library to make it easier to develop and deploy. The frame work
+around my local library is <a href=/images/andre-von-nickisch-aug-2019.png>pretty cool</a> too.</p>
+<p>Anyway, as far as I can tell, Next.js starts by <a href=https://reactjs.org/docs/react-dom.html#hydrate>hydrating the document</a>,
+which means it needs to build a virtual representation of the DOM tree<sup id=fnref:1><a href=#fn:1 class=footnote-ref role=doc-noteref>1</a></sup>:</p>
+<div class=highlight><pre tabindex=0 style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-js data-lang=js>(0, s.jsxs)(<span style=color:#666;font-style:italic>&#34;div&#34;</span>, {
+  children: [
+    (0, s.jsx)(<span style=color:#666;font-style:italic>&#34;p&#34;</span>, { children: <span style=color:#666;font-style:italic>&#34;V fcraq zbfg bs zl qnlf jvgu syrrgvat gubhtugf. Jevgvat. Yvfgravat. Naq pbyyrpgvat byq Ornpu pehvfref. Gur zbeavat evqrf xrrc zr ba n uvyy bs\xa0fvyrapr.&#34;</span> }),
+    (0, s.jsx)(<span style=color:#666;font-style:italic>&#34;p&#34;</span>, { children: <span style=color:#666;font-style:italic>&#34;V tb zbaguf jvgubhg n cubar.&#34;</span> }),
+    (0, s.jsx)(<span style=color:#666;font-style:italic>&#34;p&#34;</span>, { children: <span style=color:#666;font-style:italic>&#34;Ybir, ybff, naq tevrs unir qvfgheorq zl pbzsbeg mbar, ohg gur tyvzzref bs Tbq fcrnx guebhtu zl zhfvp naq\xa0snzvyl.&#34;</span> }),
+    (0, s.jsx)(<span style=color:#666;font-style:italic>&#34;p&#34;</span>, { children: <span style=color:#666;font-style:italic>&#34;Juvyr gur jbeyq nebhaq zr ribyirf, V ersyrpg ba jung znggref gur zbfg. Gur yvsr va juvpu zl jbeqf jvyy ynaq\xa0arkg.&#34;</span> }),
+    (0, s.jsx)(<span style=color:#666;font-style:italic>&#34;p&#34;</span>, { children: <span style=color:#666;font-style:italic>&#34;Nf V cebqhpr zl svany GQR nyohz, V srry wbl gb unir orra n cneg bs fhpu n phygheny vzcevag nsgre 17 lrnef. Gur Fgehttyrf. Gur Fhpprff. Naq zbfg vzcbegnagyl, gur Oebgureubbq. Znl gur Zbfg Uvtu pbagvahr gb hfr Gbc Qnjt nf n irffry sbe pnaqvq perngbef. Nf V pbagvahr gb chefhr zl yvsr\u2019f\xa0pnyyvat.&#34;</span> }),
+    (0, s.jsx)(<span style=color:#666;font-style:italic>&#34;p&#34;</span>, { children: <span style=color:#666;font-style:italic>&#34;Gurer\u2019f ornhgl va pbzcyrgvba. Naq nyjnlf snvgu va gur\xa0haxabja.&#34;</span> }),
+    (0, s.jsx)(<span style=color:#666;font-style:italic>&#34;p&#34;</span>, { children: <span style=color:#666;font-style:italic>&#34;Gunax lbh sbe xrrcvat zr va lbhe gubhtugf. V\u2019ir cenlrq sbe lbh\xa0nyy.&#34;</span> }),
+    (0, s.jsx)(<span style=color:#666;font-style:italic>&#34;p&#34;</span>, { children: <span style=color:#666;font-style:italic>&#34;Frr lbh fbba rabhtu.&#34;</span> }),
+    (0, s.jsx)(<span style=color:#666;font-style:italic>&#34;p&#34;</span>, { children: <span style=color:#666;font-style:italic>&#34;-bxynzn&#34;</span> }),
+  ]
+}
+</code></pre></div><p>Note the <code>\xa0</code> and <code>\u2019</code> code points. They map to <code>&amp;nbsp;</code> and <a href=https://www.compart.com/en/unicode/U+2019><code>’</code></a>
+respectively.</p>
+<p>So the spaces are definitely coming from the source, and this isn&rsquo;t actually a
+bug in the browser. Good to know.</p>
+<h3 id=okay-but-why-are-the-nbsps-there>Okay, but why are the nbsps there?</h3>
+<p>Well, the obvious answer is that the developer used them exactly as they&rsquo;re
+meant to be used: to avoid pushing individual words onto separate lines. For
+aesthetics or something.</p>
+<p>The less obvious (and more correct) answer is that there&rsquo;s a hidden message
+here. I just don&rsquo;t know what it is yet.<span style=display:none>I really
+dont.</span></p>
+<p>The six words that are preceded by the nbsps are: silence, family, next,
+calling, unknown, and all. <a href=/permutations/silence-family-next-calling-unknown-all.txt>Here are their permutations</a>. None of
+them make much sense to me, but let me know if you find something.</p>
+<section class=footnotes role=doc-endnotes>
+<hr>
+<ol>
+<li id=fn:1 role=doc-endnote>
+<p>If you don&rsquo;t know what <code>(0, s.jsx)(...)</code> is doing, you should read about the <a href=https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Comma_Operator>comma operator</a>. It&rsquo;s wild.&#160;<a href=#fnref:1 class=footnote-backref role=doc-backlink>&#8617;&#xfe0e;</a></p>
+</li>
+</ol>
+</section>
+</div>
+</main>
+<footer>
+<p class=doc-date>March 12, 2022</p>
+</footer>
+</body>
+</html>

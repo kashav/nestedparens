@@ -1,0 +1,105 @@
+<!doctype html><html>
+<head>
+<meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<meta name=date content="December-04-2021">
+<link rel=stylesheet href=/style.c0137455c95229bce3c902b60e56fd4abab8e35358e5eb2ab4cc1b7d4a508d8a.css>
+<title>What Are Relocated Items?</title>
+</head>
+<body>
+<header>
+<h1><a href=/archive>What Are Relocated Items?</a></h1>
+<p class=doc-subtitle>Apple's .ldpf File Type</p>
+</header>
+<main>
+<div id=content><p>After updating macOS the other day, a PDF named <em>What Are Relocated Items?</em>
+showed up on my Desktop.</p>
+<p>I opened it in my <a href=http://get.thebestwebbrowser.com/>browser</a>, but that didn&rsquo;t work: it showed me a
+directory listing for a folder named <em>Quarantine.lpdf</em> instead. I figured it was
+a Firefox bug, but Finder used that same name:</p>
+<img src=/images/getinfo.png alt="Finder get info panel shows file name as file Quarantine.lpdf" width=300>
+<p>I noticed a few other things:</p>
+<ol>
+<li>
+<p>The <em>What Are Relocated Items?</em> file doesn&rsquo;t actually exist, and
+<em>Quarantine.lpdf</em> is indeed a directory:</p>
+<div class=highlight><pre tabindex=0 style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-console data-lang=console>$ ls What*
+&#34;What*&#34;: No such file or directory (os error 2)
+$ file Quarantine.lpdf
+Quarantine.lpdf: directory
+</code></pre></div></li>
+<li>
+<p>With a bunch of locale-specific subdirectories:</p>
+<div class=highlight><pre tabindex=0 style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-console data-lang=console>$ ls Quarantine.lpdf/
+ar.lproj      he.lproj      pt_PT.lproj
+ca.lproj      hi.lproj      ro.lproj
+cs.lproj      hr.lproj      ru.lproj
+da.lproj      hu.lproj      sk.lproj
+de.lproj      id.lproj      sv.lproj
+el.lproj      Info.plist    th.lproj
+en.lproj      it.lproj      tr.lproj
+en_AU.lproj   ja.lproj      uk.lproj
+en_GB.lproj   ko.lproj      vi.lproj
+es.lproj      ms.lproj      zh_CN.lproj
+es_419.lproj  nl.lproj      zh_HK.lproj
+fi.lproj      no.lproj      zh_TW.lproj
+fr.lproj      pl.lproj
+fr_CA.lproj   pt.lproj
+</code></pre></div></li>
+<li>
+<p>Each of which has a localized version of the PDF and an <em>InfoPlist.strings</em>
+file:</p>
+<div class=highlight><pre tabindex=0 style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-console data-lang=console>$ tree Quarantine.lpdf/
+Quarantine.lpdf/
+├── ar.lproj/
+│  ├── InfoPlist.strings
+│  └── Quarantine.pdf
+├── ca.lproj/
+│  ├── InfoPlist.strings
+│  └── Quarantine.pdf
+├── cs.lproj/
+│  ├── InfoPlist.strings
+│  └── Quarantine.pdf
+├── da.lproj/
+│  ├── InfoPlist.strings
+│  └── Quarantine.pdf
+...
+</code></pre></div></li>
+</ol>
+<p>Those <code>.strings</code> files are supposed to be viewable in Xcode, but mine was busy
+<del>taking a nap</del> updating, so that wasn&rsquo;t really an option. I ended up having
+to <a href=https://apple.stackexchange.com/a/173473>use the command line</a>, again:</p>
+<div class=highlight><pre tabindex=0 style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-console data-lang=console>$ plutil -p Quarantine.lpdf/en.lproj/InfoPlist.strings
+{
+  &#34;CFBundleDisplayName&#34; =&gt; &#34;What Are Relocated Items?&#34;
+}
+</code></pre></div><p>There&rsquo;s that name from before. The mapping appears to happen in the top-level
+<em>Info.plist</em>:</p>
+<div class=highlight><pre tabindex=0 style=background-color:#fff;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-console data-lang=console>$ plutil -p Quarantine.lpdf/Info.plist
+{
+  &#34;CFBundleDevelopmentRegion&#34; =&gt; &#34;en_US&#34;
+  &#34;CFBundleDisplayName&#34; =&gt; &#34;Quarantine&#34;
+  &#34;CFBundleGetInfoString&#34; =&gt; &#34;Relocated Items&#34;
+  &#34;CFBundleIdentifier&#34; =&gt; &#34;com.apple.installandsetup.QuarantineDocument&#34;
+  &#34;CFBundleInfoDictionaryVersion&#34; =&gt; &#34;6.0&#34;
+  &#34;CFBundleName&#34; =&gt; &#34;Quarantine&#34;
+  &#34;CFBundlePackageType&#34; =&gt; &#34;BNDL&#34;
+  &#34;CFBundleShortVersionString&#34; =&gt; &#34;1.0&#34;
+  &#34;CFBundleSignature&#34; =&gt; &#34;lpdf&#34;
+  &#34;CFBundleVersion&#34; =&gt; &#34;1.0&#34;
+}
+</code></pre></div><p>Then I changed my system language to Danish and restarted my computer. Sure
+enough, when I got back, it gave me the Danish version of the PDF. I tried a
+few other languages and they mostly worked too.</p>
+<p>I <em>am</em> kinda annoyed that I&rsquo;m forced to keep this 1.4MB directory on my Desktop
+for what is effectively a 96B PDF. Wet Baloney had <a href=https://discussions.apple.com/thread/370944>similar</a>
+concerns 15 years ago. I guess some things never change.</p>
+<p>Anyways, macOS had moved some files around while updating and just wanted to let
+me know. Thanks, Apple!</p>
+</div>
+</main>
+<footer>
+<p class=doc-date>December 4, 2021</p>
+</footer>
+</body>
+</html>
